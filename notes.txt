@@ -1,0 +1,152 @@
+# Create  — post req
+
+router.post(’/create’, middleware.authenticate, async (req,res) ⇒ {
+
+let response = {
+    status: false,
+  };
+  let body = req.body;
+
+  let modelObj = new Model(body);
+
+  await modelObj
+    .save()
+    .then((doc) => {
+      response.status = true;
+      response.data = doc;
+      res.send(response);
+    })
+    .catch((err) => {
+      response.error = err;
+      res.send(response);
+    });
+
+});
+
+
+
+#get Route
+
+router.get("/get", middleware.authenticate, function (req, res) {
+  let skip =
+    typeof req.query.skip !== "undefined" && req.query.skip >= 0
+      ? parseInt(req.query.skip)
+      : 0;
+  let limit =
+    typeof req.query.limit !== "undefined" && req.query.limit > 0
+      ? parseInt(req.query.limit)
+      : 10;
+
+ var cond = [
+    {
+      $facet: {
+        totalData: [
+        
+          {$match: filter},
+          { $sort: sort },
+          { $skip: skip },
+          { $limit: limit },
+          { $sort: { createdAt: -1 } },
+        ],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ];
+  Model.aggregate(cond).exec(function (err, data) {
+   if (err) {
+      return res.status(200).json({
+        status: false,
+        message: "Get Error While Getting Data",
+        error: err,
+      });
+    } else {
+      if (!!data) {
+        res.status(200).json({
+          status: true,
+          data: data[0].totalData,
+          count: data[0].totalCount[0] ? data[0].totalCount[0].count : 0,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "No Data Available",
+        });
+      }
+    }
+  });
+});
+
+
+
+#get request by Id
+
+router.get("/get/:id", function (req, res) {
+  let response = {
+    status: false,
+  };
+
+  const Id = req.params.id;
+
+  Model.findById(Id)
+    .then((doc) => {
+      response.status = true;
+      response.data = doc;
+      res.send(response);
+    })
+    .catch((err) => {
+      response.error = err;
+      res.send(response);
+    });
+});
+
+
+#update request by Id
+
+router.put("/update/:id", middleware.authenticate, function (req, res) {
+  let response = {
+    status: false,
+  };
+
+  let body = req.body;
+
+  const Id = req.params.id;
+
+  const filter = { _id: mongoose.Types.ObjectId(Id) };
+  const update = body.fields;
+
+  Model
+    .findOneAndUpdate(filter, update, {
+      new: true,
+    })
+    .then((doc) => {
+      response.status = true;
+      response.data = doc;
+      res.send(response);
+    })
+    .catch((err) => {
+      response.error = err;
+      res.send(response);
+    });
+});
+
+
+# delete request by Id
+
+router.delete("/delete/:id", middleware.authenticate, function (req, res) {
+  let response = {
+    status: false,
+  };
+  let id = req.params.id;
+
+  Model
+    .deleteOne({ _id: mongoose.Types.ObjectId(id) })
+    .then((doc) => {
+      response.status = true;
+      response.data = doc;
+      res.send(response);
+    })
+    .catch((err) => {
+      response.error = err;
+      res.send(response);
+    });
+});
